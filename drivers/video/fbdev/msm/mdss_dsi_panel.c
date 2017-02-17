@@ -23,6 +23,7 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/string.h>
+#include <linux/display_state.h>
 
 #include "mdss_dsi.h"
 #include "mdss_dba_utils.h"
@@ -56,6 +57,13 @@ extern bool synaptics_gesture_func_on;
 
 bool ESD_TE_status = false;
 #endif
+
+static bool display_on = true;
+
+bool is_display_on(void)
+{
+	return display_on;
+}
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
@@ -1212,6 +1220,8 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
 #endif
 
+	display_on = true;
+
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
@@ -1323,6 +1333,8 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+
+	display_on = false;
 
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
