@@ -219,7 +219,8 @@ static void dt2w_input_event(struct input_handle *handle, unsigned int type,
 
 static int input_dev_filter(struct input_dev *dev) {
 	if (strstr(dev->name, "touch") ||
-		strstr(dev->name, "synaptics_dsx_i2c")) {
+		strstr(dev->name, "synaptics_dsx_i2c") ||
+		strstr(dev->name, "NVTCapacitiveTouchScreen")) {
 		return 0;
 	} else {
 		return 1;
@@ -397,5 +398,5 @@ static void __exit doubletap2wake_exit(void)
 	return;
 }
 
-late_initcall(doubletap2wake_init);
+module_init(doubletap2wake_init);
 module_exit(doubletap2wake_exit);
