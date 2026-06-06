@@ -60,14 +60,14 @@ const char linux_proc_banner[] =
  char thre_kernel_name[64] = UTS_RELEASE;
  char thre_user_name[64]   = LINUX_COMPILE_BY;
  char thre_host_name[64]   = LINUX_COMPILE_HOST;
- char thre_compiler[128]   = LINUX_COMPILER;
- char thre_build_date[128] = UTS_VERSION;
+ char thre_compiler[256]   = LINUX_COMPILER;
+ char thre_build_date[256] = UTS_VERSION;
 
 static char default_kernel_name[64] = UTS_RELEASE;
 static char default_user_name[64]   = LINUX_COMPILE_BY;
 static char default_host_name[64]   = LINUX_COMPILE_HOST;
-static char default_compiler[128]   = LINUX_COMPILER;
-static char default_build_date[128] = UTS_VERSION;
+static char default_compiler[256]   = LINUX_COMPILER;
+static char default_build_date[256] = UTS_VERSION;
 
 module_param_string(default_kernel_name, default_kernel_name, sizeof(default_kernel_name), 0444);
 module_param_string(default_user_name,   default_user_name,   sizeof(default_user_name),   0444);
