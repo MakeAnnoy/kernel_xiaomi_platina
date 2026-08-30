@@ -30,8 +30,7 @@
 #include <linux/workqueue.h>
 #include <linux/input.h>
 #include <linux/hrtimer.h>
-#include <linux/fb.h>
-#include <linux/notifier.h>
+#include <linux/display_state.h>
 #include <asm-generic/cputime.h>
 
 /* uncomment since no touchscreen defines android touch, do that here */
