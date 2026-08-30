@@ -44,7 +44,7 @@
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESCRIPTION);
 MODULE_VERSION(DRIVER_VERSION);
-MODULE_LICENSE("GPLv2");
+MODULE_LICENSE("GPL v2");
 
 #ifdef CONFIG_MACH_MSM8974_HAMMERHEAD
 /* Hammerhead aka Nexus 5 */
@@ -378,6 +378,7 @@ extern struct kobject *android_touch_kobj;
 struct kobject *android_touch_kobj;
 EXPORT_SYMBOL_GPL(android_touch_kobj);
 #endif
+
 static int __init sweep2wake_init(void)
 {
 	int rc = 0;
@@ -385,6 +386,7 @@ static int __init sweep2wake_init(void)
 	sweep2wake_pwrdev = input_allocate_device();
 	if (!sweep2wake_pwrdev) {
 		pr_err("Can't allocate suspend autotest power button\n");
+		rc = -ENOMEM;
 		goto err_alloc_dev;
 	}
 
@@ -401,53 +403,78 @@ static int __init sweep2wake_init(void)
 	s2w_input_wq = create_workqueue("s2wiwq");
 	if (!s2w_input_wq) {
 		pr_err("%s: Failed to create s2wiwq workqueue\n", __func__);
-		return -EFAULT;
+		rc = -EFAULT;
+		goto err_wq;
 	}
 	INIT_WORK(&s2w_input_work, s2w_input_callback);
+
 	rc = input_register_handler(&s2w_input_handler);
 	if (rc)
 		pr_err("%s: Failed to register s2w_input_handler\n", __func__);
 
 #ifndef ANDROID_TOUCH_DECLARED
-	android_touch_kobj = kobject_create_and_add("android_touch", NULL) ;
-	if (android_touch_kobj == NULL) {
+	android_touch_kobj = kobject_create_and_add("android_touch", NULL);
+	if (android_touch_kobj == NULL)
 		pr_warn("%s: android_touch_kobj create_and_add failed\n", __func__);
-	}
 #endif
 	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
-	if (rc) {
+	if (rc)
 		pr_warn("%s: sysfs_create_file failed for sweep2wake\n", __func__);
-	}
-	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_debug.attr);
-	if (rc) {
-		pr_warn("%s: sysfs_create_file failed for sweep2wake_debug\n", __func__);
-	}
-	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_pwrkey_dur.attr);
-	if (rc) {
-		pr_warn("%s: sysfs_create_file failed for sweep2wake_pwrkey_dur\n", __func__);
-	}
-	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_version.attr);
-	if (rc) {
-		pr_warn("%s: sysfs_create_file failed for sweep2wake_version\n", __func__);
-	}
 
+	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_debug.attr);
+	if (rc)
+		pr_warn("%s: sysfs_create_file failed for sweep2wake_debug\n", __func__);
+
+	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_pwrkey_dur.attr);
+	if (rc)
+		pr_warn("%s: sysfs_create_file failed for sweep2wake_pwrkey_dur\n", __func__);
+
+	rc = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_version.attr);
+	if (rc)
+		pr_warn("%s: sysfs_create_file failed for sweep2wake_version\n", __func__);
+
+	pr_info(LOGTAG"%s done\n", __func__);
+	return 0;
+
+	/* FIX: setelah input_register_device() sukses, device sudah dimiliki
+	 * input core. Kalau langkah berikutnya gagal, harus dilepas dengan
+	 * input_unregister_device(), BUKAN input_free_device() lagi. */
+err_wq:
+	input_unregister_device(sweep2wake_pwrdev);
+	sweep2wake_pwrdev = NULL;
+	return rc;
+
+	/* FIX: label ini sekarang hanya dicapai kalau input_register_device()
+	 * gagal (device belum dimiliki input core), jadi input_free_device()
+	 * di sini aman. Sebelumnya, jalur sukses juga jatuh ke sini dan
+	 * membebaskan device yang justru sedang dipakai -> use-after-free. */
 err_input_dev:
 	input_free_device(sweep2wake_pwrdev);
+	sweep2wake_pwrdev = NULL;
 err_alloc_dev:
 	pr_info(LOGTAG"%s done\n", __func__);
-
-	return 0;
+	return rc;
 }
 
 static void __exit sweep2wake_exit(void)
 {
+	/* FIX: bersihkan semua file sysfs yang dibuat saat init, supaya
+	 * tidak meninggalkan node basi setelah modul di-unload. */
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_debug.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_pwrkey_dur.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_version.attr);
 #ifndef ANDROID_TOUCH_DECLARED
 	kobject_del(android_touch_kobj);
 #endif
 	input_unregister_handler(&s2w_input_handler);
+	flush_workqueue(s2w_input_wq);
 	destroy_workqueue(s2w_input_wq);
+
+	/* FIX: input_unregister_device() sudah melepas device begitu referensi
+	 * terakhirnya lepas. Memanggil input_free_device() sesudahnya adalah
+	 * double-free pada device yang sama. */
 	input_unregister_device(sweep2wake_pwrdev);
-	input_free_device(sweep2wake_pwrdev);
 	return;
 }
 
