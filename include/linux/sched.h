@@ -2666,6 +2666,11 @@ union thread_union {
 	unsigned long stack[THREAD_SIZE/sizeof(long)];
 };
 
+static inline int sched_set_boost(int enable)
+{
+	return -EINVAL;
+}
+
 #ifndef __HAVE_ARCH_KSTACK_END
 static inline int kstack_end(void *addr)
 {
