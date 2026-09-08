@@ -476,7 +476,7 @@ static void proc_tasks(struct work_struct *work)
 
 		if (kill_heaviest_gid) {
 			group = __task_cred(p)->group_info;
-			gid = group->gid[(group->ngroups - 1)];
+			gid = GROUP_AT(group, group->ngroups - 1);
 
 			if (!__kgid_val(gid))
 				continue;
